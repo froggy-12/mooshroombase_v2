@@ -184,7 +184,7 @@ func CheckIsEmailAvailable(c *fiber.Ctx, mongoClient *mongo.Client, validate val
 	if email == "" {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "invalid query"})
 	}
-	if err := validate.Var(email, "required, email"); err != nil {
+	if err := validate.Var(email, "required,email"); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid Email: " + err.Error()})
 	}
 	_, err := utils.FindUserFromMongoDBUsingEmail(email, coll)

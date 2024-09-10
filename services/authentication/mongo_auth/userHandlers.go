@@ -67,7 +67,7 @@ func UpdateUser(c *fiber.Ctx, mongoClient *mongo.Client) error {
 		UpdatedUser.RawData = user.RawData
 	}
 
-	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"firstName": UpdatedUser.FirstName, "lastName": UpdatedUser.LastName, "profilePicture": UpdatedUser.ProfilePicture, "rawData": UpdatedUser.RawData})
+	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"$set": bson.M{"firstName": UpdatedUser.FirstName, "lastName": UpdatedUser.LastName, "profilePicture": UpdatedUser.ProfilePicture, "rawData": UpdatedUser.RawData}})
 
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to Update User " + err.Error()})
@@ -101,7 +101,7 @@ func UpdateUserName(c *fiber.Ctx, mongoClient *mongo.Client, validator validator
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Wrong Password or Username"})
 	}
 
-	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"username": body.NewUserName})
+	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"$set": bson.M{"username": body.NewUserName}})
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Something went wrong failed to update username: " + err.Error()})
 	}
@@ -119,9 +119,12 @@ func AppendRawData(c *fiber.Ctx, mongoClient *mongo.Client) error {
 	coll := mongoClient.Database("mooshroombase").Collection("users")
 
 	var body types.RawUserData
-	if err := c.BodyParser(&body); err != nil {
+	var requestBody map[string]any
+	if err := c.BodyParser(&requestBody); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: err.Error()})
 	}
+
+	body.Data = requestBody
 
 	_, err = coll.UpdateOne(context.Background(), bson.M{"id": userId}, bson.M{"$push": bson.M{"rawData": body}})
 
@@ -134,9 +137,13 @@ func AppendRawData(c *fiber.Ctx, mongoClient *mongo.Client) error {
 
 func ChangeEmail(c *fiber.Ctx, mongoClient *mongo.Client, validator validator.Validate) error {
 	var body struct {
-		Email    string `json:"email" validate:"email,required"`
-		NewEmail string `json:"newEmail" validate:"email, required"`
+		Email    string `json:"email" validate:"required,email"`
+		NewEmail string `json:"newEmail" validate:"required,email"`
 		Password string `json:"password" validate:"required"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid request body: " + err.Error()})
 	}
 
 	if err := validator.Struct(&body); err != nil {
@@ -152,7 +159,7 @@ func ChangeEmail(c *fiber.Ctx, mongoClient *mongo.Client, validator validator.Va
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Wrong Password or email"})
 	}
-	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"username": body.NewEmail})
+	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"$set": bson.M{"email": body.NewEmail, "verified": false}})
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Something went wrong failed to update email: " + err.Error()})
 	}
@@ -160,18 +167,41 @@ func ChangeEmail(c *fiber.Ctx, mongoClient *mongo.Client, validator validator.Va
 	return c.Status(http.StatusAccepted).JSON(types.HttpSuccessResponse{Message: "Email Has been Updated"})
 }
 
-func DeleteUser(c *fiber.Ctx, mongoClient *mongo.Client) error {
+func DeleteUser(c *fiber.Ctx, mongoClient *mongo.Client, validator validator.Validate) error {
 	token := c.Cookies("jwtToken")
 	userId, err := utils.ExtractJWTToken(token, configs.Configs.HttpConfigurations.JWTSecret)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON("something went wrong: " + err.Error())
 	}
 
+	var body struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid request body: " + err.Error()})
+	}
+
+	if err := validator.Struct(&body); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid request body: " + err.Error()})
+	}
 	coll := mongoClient.Database("mooshroombase").Collection("users")
-	_, err = coll.DeleteOne(context.Background(), bson.M{"id": userId})
+	user, err := utils.FindUserFromMongoDBUsingID(userId, coll)
 
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to delete user error: " + err.Error()})
+		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "User not found: " + err.Error()})
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Wrong Password or email"})
+	}
+
+	_, err = coll.DeleteOne(context.Background(), bson.M{"email": user.Email})
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Failed to delete user: " + err.Error()})
 	}
 
 	return c.Status(http.StatusAccepted).JSON(types.DeleteSuccessResponse{Message: "User has been deleted successfully"})

@@ -24,6 +24,6 @@ func UserRoutes(router fiber.Router, mongoClient *mongo.Client) {
 		return mongoauth.AppendRawData(c, mongoClient)
 	})
 	router.Delete("/delete-user", func(c *fiber.Ctx) error {
-		return mongoauth.DeleteUser(c, mongoClient)
+		return mongoauth.DeleteUser(c, mongoClient, *validate)
 	})
 }

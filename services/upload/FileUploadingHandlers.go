@@ -258,7 +258,7 @@ func HandleAnyFormatMultiFile(c *fiber.Ctx) error {
 	files := form.File["file"]
 
 	if len(files) == 0 {
-		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "fo files found"})
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "no files found"})
 	}
 
 	var uploadedFiles []string
