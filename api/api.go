@@ -8,6 +8,7 @@ import (
 	"github.com/froggy-12/mooshroombase_v2/middlewares"
 	"github.com/froggy-12/mooshroombase_v2/routes"
 	mongoauth "github.com/froggy-12/mooshroombase_v2/services/authentication/mongo_auth"
+	servefiles "github.com/froggy-12/mooshroombase_v2/services/serve_files"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -76,6 +77,12 @@ func (s *Server) Start() error {
 	routes.FreeRoutes(freeRouter)
 	if configs.Configs.Features.FileUplaod {
 		routes.FileUploadingRoutes(fileUploadingrouter)
+	}
+
+	// serving files routes
+	if configs.Configs.Features.ServeFile {
+		freeRouter.Get("/get_file", servefiles.ServeFiles)
+		freeRouter.Get("/download_file", servefiles.DownloadFile)
 	}
 
 	// mongodb auth routes
