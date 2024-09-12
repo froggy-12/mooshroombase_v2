@@ -34,5 +34,36 @@ func Init(mongoClient *mongo.Client, redisClient *redis.Client, mariaDBClient *s
 		if err != nil {
 			log.Fatal(err)
 		}
+	} else if configs.Configs.DatabaseConfigurations.PrimaryDB == "mariadb" {
+		utils.DebugLogger("db", "detected mariadb as primary database running some configurations")
+
+		_, err := mariaDBClient.Exec(`CREATE DATABASE IF NOT EXISTS mooshroombase`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = mariaDBClient.Exec(`
+    CREATE TABLE IF NOT EXISTS mooshroombase.users (
+      ID VARCHAR(255) NOT NULL,
+      UserName VARCHAR(255) NOT NULL UNIQUE,
+      FirstName VARCHAR(255) NOT NULL,
+      LastName VARCHAR(255) NOT NULL,
+      Email VARCHAR(255) NOT NULL UNIQUE,
+      Password VARCHAR(255) NOT NULL,
+      ProfilePicture VARCHAR(255),
+      CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UpdatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      Verified BOOLEAN NOT NULL DEFAULT FALSE,
+      VerificationToken VARCHAR(255),
+      LastLoggedIn TIMESTAMP,
+      PRIMARY KEY (ID)
+    );
+`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 }

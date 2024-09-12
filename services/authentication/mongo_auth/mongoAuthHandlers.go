@@ -76,11 +76,35 @@ func CreateUserWithEmailAndPassword(c *fiber.Ctx, mongoClient *mongo.Client, val
 		utils.SetJwtHttpCookies(c, token, 1)
 	}
 
-	return c.Status(http.StatusCreated).JSON(types.HttpSuccessResponse{
-		Message: "User Has been created to the database hope you will verify the email first then everything",
-		Data:    map[string]any{"userId": newUser.ID},
-	})
+	if configs.Configs.Authentication.SendEmailAfterSignUpWithCode {
+		if !configs.Configs.Authentication.EmailVerificationAllowed {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Email Verification is not configured or turned off please check again and restart the app"})
+		}
 
+		if !configs.Configs.SMTPConfigurations.SMTPEnabled {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "SMTP is not configured or turned off please check again and restart the app"})
+		}
+
+		newToken := uuid.New().String()
+		_, err := collection.UpdateOne(context.Background(), bson.M{"id": newUser.ID}, bson.M{"$set": bson.M{"verificationToken": newToken}})
+
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "failed to update new token: " + err.Error()})
+		}
+
+		err = smtpconfigs.SendVerificationEmail(newUser.Email, newToken)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "failed to send email to this user: " + user.Email})
+		}
+
+		return c.Status(http.StatusAccepted).JSON(types.HttpSuccessResponse{Message: "User has been created successfully and sent verification email"})
+
+	} else {
+		return c.Status(http.StatusCreated).JSON(types.HttpSuccessResponse{
+			Message: "User Has been created to the database hope you will verify the email first then everything",
+			Data:    map[string]any{"userId": newUser.ID},
+		})
+	}
 }
 
 func LogInWithEmailAndPassword(c *fiber.Ctx, mongoClient *mongo.Client, validate validator.Validate) error {
@@ -117,12 +141,14 @@ func SendVerificationEmail(c *fiber.Ctx, mongoClient *mongo.Client) error {
 		ID string `json:"id"`
 	}
 
-	if c.Cookies("jwtToken") != "" {
+	tokenSet := c.Query("tokenSet", "false")
+
+	if c.Cookies("jwtToken") != "" && tokenSet == "true" {
 		userID, _, _ := utils.ReadJWTToken(c.Cookies("jwtToken"), configs.Configs.HttpConfigurations.JWTSecret)
 		body.ID = userID
 	}
 
-	if body.ID == "" && !configs.Configs.Authentication.SetJWTTokenAfterSignUp {
+	if body.ID == "" && tokenSet == "false" {
 		if err := c.BodyParser(&body); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid Request body"})
 		}
@@ -135,7 +161,14 @@ func SendVerificationEmail(c *fiber.Ctx, mongoClient *mongo.Client) error {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "User not found"})
 	}
 
-	err = smtpconfigs.SendVerificationEmail(user.Email, user.VerificationToken)
+	newToken := uuid.New().String()
+	_, err = coll.UpdateOne(context.Background(), bson.M{"id": user.ID}, bson.M{"$set": bson.M{"verificationToken": newToken}})
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "failed to update new token: " + err.Error()})
+	}
+
+	err = smtpconfigs.SendVerificationEmail(user.Email, newToken)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "failed to send email to this user: " + user.Email})
 	}

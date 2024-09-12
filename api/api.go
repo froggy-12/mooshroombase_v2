@@ -99,6 +99,27 @@ func (s *Server) Start() error {
 				log.Fatal("primary database set to mongodb but its not even running")
 			}
 		}
+
+		if configs.Configs.DatabaseConfigurations.PrimaryDB == "mariadb" {
+			found := false
+			for _, db := range configs.Configs.DatabaseConfigurations.RunningDatabases {
+				if db == "mariadb" {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				authRouter := app.Group("/api/auth")
+				routes.MariaDBAuthRoutes(authRouter, s.mariaDBClient)
+				userRouter := app.Group("/api/data", middlewares.CheckAndRefreshJWTTokenMiddleware)
+				routes.MariaUserRoutes(userRouter, s.mariaDBClient)
+				app.Get("/api/auth/user-id", middlewares.CheckAndRefreshJWTTokenMiddleware, routes.GetUserID)
+			} else {
+				log.Fatal("primary database set to mariadb but its not even running")
+			}
+		}
+
 	}
 
 	return app.Listen(s.addr)

@@ -7,17 +7,18 @@ type Applications struct {
 }
 
 type Authentication struct {
-	Auth                     bool   `json:"auth"`                        // by default true
-	OAuth                    bool   `json:"oauth"`                       // by default false
-	GoogleOAuth              bool   `json:"google_oauth"`                // by default false (it will require OAuth to be true)
-	GoogleOAuthAppID         string `json:"google_oauth_app_id"`         // required if Google OAuth enabled
-	GoogleOAuthAppSecret     string `json:"google_oauth_app_secret"`     // required if Google OAuth enabled
-	GithubOAuth              bool   `json:"github_oauth"`                // by default false (it will require OAuth to be true)
-	GithubOAuthAppID         string `json:"github_oauth_app_id"`         // required if Github OAuth enabled
-	GithubOAuthAppSecret     string `json:"github_oauth_app_secret"`     // required if Github OAuth enabled
-	EmailVerificationAllowed bool   `json:"email_verification_allowed"`  // adds some latency to the server and by default false and its preference dont need to turn on you should learn more about this first
-	SetJWTTokenAfterSignUp   bool   `json:"set_jwt_token_after_sign_up"` // its false by default
-	RealTimeUserData         bool   `json:"real_time_user_data"`         // by default false turn true for real time user data works with only mongodb not mariadb
+	Auth                         bool   `json:"auth"`                        // by default true
+	OAuth                        bool   `json:"oauth"`                       // by default false
+	GoogleOAuth                  bool   `json:"google_oauth"`                // by default false (it will require OAuth to be true)
+	GoogleOAuthAppID             string `json:"google_oauth_app_id"`         // required if Google OAuth enabled
+	GoogleOAuthAppSecret         string `json:"google_oauth_app_secret"`     // required if Google OAuth enabled
+	GithubOAuth                  bool   `json:"github_oauth"`                // by default false (it will require OAuth to be true)
+	GithubOAuthAppID             string `json:"github_oauth_app_id"`         // required if Github OAuth enabled
+	GithubOAuthAppSecret         string `json:"github_oauth_app_secret"`     // required if Github OAuth enabled
+	EmailVerificationAllowed     bool   `json:"email_verification_allowed"`  // adds some latency to the server and by default false and its preference dont need to turn on you should learn more about this first
+	SetJWTTokenAfterSignUp       bool   `json:"set_jwt_token_after_sign_up"` // its false by default
+	RealTimeUserData             bool   `json:"real_time_user_data"`         // by default false turn true for real time user data works with only mongodb not mariadb
+	SendEmailAfterSignUpWithCode bool   `json:"send_email_after_sign_up_with_code"`
 }
 
 type DatabaseConfigurations struct {

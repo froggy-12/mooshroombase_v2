@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -293,4 +294,112 @@ func LogIn(c *fiber.Ctx, coll *mongo.Collection, validate validator.Validate, jw
 		Data:    map[string]any{"userID": user.ID},
 	})
 
+}
+
+func FindUserFromMariaDBUsingEmail(email string, db *sql.DB) (types.User_Maria, error) {
+	var user types.User_Maria
+	query := "select * from mooshroombase.users where Email = ?;"
+	err := db.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Password,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.VerificationToken,
+		&user.LastLoggedIn,
+	)
+
+	return user, err
+}
+
+func FindUserFromMariaDBUsingID(ID string, db *sql.DB) (types.User_Maria, error) {
+	var user types.User_Maria
+	query := "select * from mooshroombase.users where ID = ?;"
+	err := db.QueryRow(query, ID).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Password,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.VerificationToken,
+		&user.LastLoggedIn,
+	)
+
+	return user, err
+}
+
+func FindUserFromMariaDBUsingUsername(username string, db *sql.DB) (types.User_Maria, error) {
+	var user types.User_Maria
+	query := "select * from mooshroombase.users where UserName = ?;"
+	err := db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Password,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.VerificationToken,
+		&user.LastLoggedIn,
+	)
+
+	return user, err
+}
+
+func LogInMariaDB(c *fiber.Ctx, db *sql.DB, validate validator.Validate, jwtExpirationTime int, jwtSecret string) error {
+	var details types.LogInDetails
+	if err := c.BodyParser(&details); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Invalid Request body"})
+	}
+
+	if err := validate.Struct(&details); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: err.Error()})
+	}
+
+	user, err := FindUserFromMariaDBUsingEmail(details.Email, db)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "User Doesnt Exist"})
+		} else {
+			return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Something went wrong: " + err.Error()})
+		}
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(details.Password))
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Wrong Password"})
+	}
+
+	token, err := GenerateJWTToken(user.ID, jwtExpirationTime, jwtSecret)
+
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to generate JWT token"})
+	}
+
+	_, err = db.Exec(`UPDATE mooshroombase.users SET LastLoggedIn = CURRENT_TIMESTAMP() WHERE ID = ?`, user.ID)
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Something Went Wrong: " + err.Error()})
+	}
+
+	SetJwtHttpCookies(c, token, jwtExpirationTime)
+	return c.Status(http.StatusAccepted).JSON(types.HttpSuccessResponse{
+		Message: "User has been logged in successfully",
+		Data:    map[string]any{"userID": user.ID},
+	})
 }

@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -43,6 +46,12 @@ type UpdateMongoUser struct {
 	RawData        []RawUserData `json:"rawData"`
 }
 
+type UpdateMariaUser struct {
+	FirstName      string `json:"firstName"`
+	LastName       string `json:"lastName"`
+	ProfilePicture string `json:"profilePicture"`
+}
+
 type UpdateMongoUserRawData struct {
 	RawData RawUserData `json:"rawData"`
 }
@@ -69,6 +78,21 @@ type LastTimeLoggedIn struct {
 
 type RawUserData struct {
 	Data map[string]any `bson:"data"`
+}
+
+type User_Maria struct {
+	ID                string
+	UserName          string
+	FirstName         string
+	LastName          string
+	Email             string
+	Password          string
+	ProfilePicture    string
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+	Verified          bool
+	VerificationToken string
+	LastLoggedIn      sql.NullTime
 }
 
 type User_Mongo_Oauth struct {
