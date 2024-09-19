@@ -12,6 +12,13 @@ import (
 )
 
 func CreateOAuthUser(c *fiber.Ctx, db *sql.DB) error {
+	jwtTokenCookie := c.Cookies("jwtToken")
+	if jwtTokenCookie != "" {
+		userID, _, _ := utils.ReadJWTToken(jwtTokenCookie, configs.Configs.HttpConfigurations.JWTSecret)
+		if userID != "" {
+			return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "Valid Token found please log out first then sign up"})
+		}
+	}
 	var user types.User_Maria_Oauth_Payload
 	if err := c.BodyParser(&user); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "request body invalid"})
@@ -20,20 +27,23 @@ func CreateOAuthUser(c *fiber.Ctx, db *sql.DB) error {
 	user_db, err := utils.FindOAuthUserFromMariaDBUsingID(user.ID, db)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Something went wrong: " + err.Error()})
+	}
 
-			newUser := types.User_Maria_Oauth{
-				ID:                user.ID,
-				UserName:          user.ID,
-				FirstName:         user.FirstName,
-				LastName:          user.LastName,
-				Email:             user.Email,
-				ProfilePicture:    user.ProfilePicture,
-				OAuthProvider:     user.OAuthProvider,
-				Verified:          user.Verified,
-				VerificationToken: uuid.New().String(),
-			}
-			_, err := db.Exec(`
+	if user_db.ID == "" {
+
+		newUser := types.User_Maria_Oauth{
+			ID:                user.ID,
+			UserName:          user.ID,
+			FirstName:         user.FirstName,
+			LastName:          user.LastName,
+			Email:             user.Email,
+			ProfilePicture:    user.ProfilePicture,
+			OAuthProvider:     user.OAuthProvider,
+			Verified:          user.Verified,
+			VerificationToken: uuid.New().String(),
+		}
+		_, err := db.Exec(`
 			INSERT INTO mooshroombase.oauth_users (
 				ID,
 				UserName,
@@ -57,23 +67,19 @@ func CreateOAuthUser(c *fiber.Ctx, db *sql.DB) error {
 			)
 			`, newUser.ID, newUser.UserName, newUser.FirstName, newUser.LastName, newUser.Email, newUser.ProfilePicture, newUser.OAuthProvider, newUser.Verified, newUser.VerificationToken)
 
-			if err != nil {
-				return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to create user: " + err.Error()})
-			}
-
-			token, err := utils.GenerateJWTToken(newUser.ID, configs.Configs.HttpConfigurations.JWTTokenExpirationTime, configs.Configs.HttpConfigurations.JWTSecret)
-
-			if err != nil {
-				return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to generate jwt token user: " + err.Error()})
-			}
-
-			utils.SetJwtHttpCookies(c, token, configs.Configs.HttpConfigurations.CorsHeaderMaxAge)
-
-			return c.Status(http.StatusOK).JSON(types.HttpSuccessResponse{Message: "user has been created successfully", Data: map[string]any{"userId": newUser.ID}})
-
-		} else {
-			return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Something went wrong: " + err.Error()})
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to create user: " + err.Error()})
 		}
+
+		token, err := utils.GenerateJWTToken(newUser.ID, configs.Configs.HttpConfigurations.JWTTokenExpirationTime, configs.Configs.HttpConfigurations.JWTSecret)
+
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(types.ErrorResponse{Error: "Failed to generate jwt token user: " + err.Error()})
+		}
+
+		utils.SetJwtHttpCookies(c, token, configs.Configs.HttpConfigurations.CorsHeaderMaxAge)
+
+		return c.Status(http.StatusOK).JSON(types.HttpSuccessResponse{Message: "user has been created successfully", Data: map[string]any{"userId": newUser.ID}})
 	}
 
 	token, err := utils.GenerateJWTToken(user_db.ID, configs.Configs.HttpConfigurations.JWTTokenExpirationTime, configs.Configs.HttpConfigurations.JWTSecret)

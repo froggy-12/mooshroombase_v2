@@ -420,7 +420,7 @@ func LogOut(c *fiber.Ctx) error {
 
 func FindOAuthUserFromMariaDBUsingID(ID string, db *sql.DB) (types.User_Maria_Oauth, error) {
 	var user types.User_Maria_Oauth
-	query := "select * from mooshroombase.users where ID = ?;"
+	query := "select * from mooshroombase.oauth_users where ID = ?;"
 	err := db.QueryRow(query, ID).Scan(
 		&user.ID,
 		&user.UserName,
