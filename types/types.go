@@ -95,16 +95,29 @@ type User_Maria struct {
 	LastLoggedIn      sql.NullTime
 }
 
-type User_Mongo_Oauth struct {
-	ID             string    `bson:"id"`
-	UserName       string    `bson:"username, unique"`
-	FirstName      string    `bson:"firstName"`
-	LastName       string    `bson:"lastName"`
-	Email          string    `bson:"email, unique"`
-	ProfilePicture string    `bson:"profilePicture"`
-	Verified       bool      `bson:"verified"`
-	CreatedAt      time.Time `bson:"createdAt"`
-	UpdatedAt      time.Time `bson:"updatedAt"`
+type User_Maria_Oauth struct {
+	ID                string
+	UserName          string
+	FirstName         string
+	LastName          string
+	Email             string
+	ProfilePicture    string
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+	Verified          bool
+	OAuthProvider     string
+	VerificationToken string
+}
+
+type User_Maria_Oauth_Payload struct {
+	ID             string `json:"id"`
+	UserName       string `json:"username"`
+	FirstName      string `json:"firstName"`
+	LastName       string `json:"lastName"`
+	Email          string `json:"email"`
+	ProfilePicture string `json:"profilePicture"`
+	Verified       bool   `json:"verified"`
+	OAuthProvider  string `json:"oauthProvider"`
 }
 
 type LogInDetails struct {

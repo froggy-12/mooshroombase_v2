@@ -2,6 +2,7 @@ package routes
 
 import (
 	mongoauth "github.com/froggy-12/mooshroombase_v2/services/authentication/mongo_auth"
+	"github.com/froggy-12/mooshroombase_v2/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,5 +26,8 @@ func UserRoutes(router fiber.Router, mongoClient *mongo.Client) {
 	})
 	router.Delete("/delete-user", func(c *fiber.Ctx) error {
 		return mongoauth.DeleteUser(c, mongoClient, *validate)
+	})
+	router.Get("/log-out", func(c *fiber.Ctx) error {
+		return utils.LogOut(c)
 	})
 }

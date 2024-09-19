@@ -7,6 +7,7 @@ import (
 	"github.com/froggy-12/mooshroombase_v2/configs"
 	"github.com/froggy-12/mooshroombase_v2/middlewares"
 	"github.com/froggy-12/mooshroombase_v2/routes"
+	mariadbauth "github.com/froggy-12/mooshroombase_v2/services/authentication/mariadb_auth"
 	mongoauth "github.com/froggy-12/mooshroombase_v2/services/authentication/mongo_auth"
 	servefiles "github.com/froggy-12/mooshroombase_v2/services/serve_files"
 	"github.com/gofiber/contrib/websocket"
@@ -37,8 +38,8 @@ func (s *Server) Start() error {
 		BodyLimit:       configs.Configs.ExtraConfigurations.BodySizeLimit,
 		ServerHeader:    "HTTPS",
 		Concurrency:     256 * 1024,
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize:  2048,
+		WriteBufferSize: 2048,
 	})
 
 	if configs.Configs.ExtraConfigurations.DebugLogging {
@@ -122,6 +123,10 @@ func (s *Server) Start() error {
 				userRouter := app.Group("/api/data", middlewares.CheckAndRefreshJWTTokenMiddleware)
 				routes.MariaUserRoutes(userRouter, s.mariaDBClient)
 				app.Get("/api/auth/user-id", middlewares.CheckAndRefreshJWTTokenMiddleware, routes.GetUserID)
+				if configs.Configs.Authentication.OAuth {
+					oauthRouter := authRouter.Group("/oauth")
+					mariadbauth.OAuth(oauthRouter, s.mariaDBClient)
+				}
 			} else {
 				log.Fatal("primary database set to mariadb but its not even running")
 			}

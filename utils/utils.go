@@ -403,3 +403,37 @@ func LogInMariaDB(c *fiber.Ctx, db *sql.DB, validate validator.Validate, jwtExpi
 		Data:    map[string]any{"userID": user.ID},
 	})
 }
+
+func LogOut(c *fiber.Ctx) error {
+	cookie := &fiber.Cookie{
+		Name:     "jwtToken",
+		Path:     "/",
+		Value:    "",
+		HTTPOnly: true,
+		Secure:   true,
+		MaxAge:   0,
+	}
+
+	c.Cookie(cookie)
+	return c.Status(http.StatusOK).SendString("User Has been logged out")
+}
+
+func FindOAuthUserFromMariaDBUsingID(ID string, db *sql.DB) (types.User_Maria_Oauth, error) {
+	var user types.User_Maria_Oauth
+	query := "select * from mooshroombase.users where ID = ?;"
+	err := db.QueryRow(query, ID).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.OAuthProvider,
+		&user.VerificationToken,
+	)
+
+	return user, err
+}
