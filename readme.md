@@ -1,1 +1,1 @@
-"Discontinued pufferbase is next project with updated features"
+"Discontinued purpurbase is next project with updated features"
