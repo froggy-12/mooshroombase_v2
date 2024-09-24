@@ -48,5 +48,4 @@ func GetUserID(c *fiber.Ctx) error {
 	}
 
 	return c.Status(http.StatusOK).JSON(types.HttpSuccessResponse{Data: map[string]any{"userID": id}})
-
 }

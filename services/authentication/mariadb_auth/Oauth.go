@@ -8,6 +8,7 @@ import (
 	"github.com/froggy-12/mooshroombase_v2/middlewares"
 	"github.com/froggy-12/mooshroombase_v2/types"
 	"github.com/froggy-12/mooshroombase_v2/utils"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/github"
@@ -16,6 +17,8 @@ import (
 )
 
 func OAuth(router fiber.Router, db *sql.DB) {
+	validator := validator.New()
+
 	goth.UseProviders(
 		github.New(configs.Configs.Authentication.GithubOAuthAppID, configs.Configs.Authentication.GithubOAuthAppSecret, configs.Configs.Applications.BackEndURlWithDomain+"/api/auth/oauth/callback/github"),
 		google.New(configs.Configs.Authentication.GoogleOAuthAppID, configs.Configs.Authentication.GoogleOAuthAppSecret, configs.Configs.Applications.BackEndURlWithDomain+"/api/auth/oauth/callback/google"),
@@ -44,5 +47,16 @@ func OAuth(router fiber.Router, db *sql.DB) {
 	router.Get("/log-out", utils.LogOut)
 	router.Get("/get-user", middlewares.CheckAndRefreshJWTTokenMiddleware, func(c *fiber.Ctx) error {
 		return GetOAuthUserData(c, db)
+	})
+	router.Put("/update-user-info", func(c *fiber.Ctx) error {
+		return UpdateOAuthUserData(c, db)
+	})
+
+	router.Get("/check-email-availability", func(c *fiber.Ctx) error {
+		return CheckIsAvailableForOAuthUser(c, db, *validator)
+	})
+
+	router.Get("/check-username-availability", func(c *fiber.Ctx) error {
+		return CheckIsEmailAvailableForOAuthUser(c, db, *validator)
 	})
 }

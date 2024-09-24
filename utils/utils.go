@@ -437,3 +437,64 @@ func FindOAuthUserFromMariaDBUsingID(ID string, db *sql.DB) (types.User_Maria_Oa
 
 	return user, err
 }
+
+func FindOAuthUserFromMariaDBUsingEmail(Email string, db *sql.DB) (types.User_Maria_Oauth, error) {
+	var user types.User_Maria_Oauth
+	query := "select * from mooshroombase.oauth_users where Email = ?;"
+	err := db.QueryRow(query, Email).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.OAuthProvider,
+		&user.VerificationToken,
+	)
+
+	return user, err
+}
+
+func FindOAuthUserFromMariaDBUsingUserName(UserName string, db *sql.DB) (types.User_Maria_Oauth, error) {
+	var user types.User_Maria_Oauth
+	query := "select * from mooshroombase.oauth_users where UserName = ?;"
+	err := db.QueryRow(query, UserName).Scan(
+		&user.ID,
+		&user.UserName,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Verified,
+		&user.OAuthProvider,
+		&user.VerificationToken,
+	)
+
+	return user, err
+}
+
+func FindOAuthUserFromMongoDBUsingID(id string, mongoCollection *mongo.Collection) (types.User_Mongo_OAuth, error) {
+	filter := bson.M{"id": id}
+	user := types.User_Mongo_OAuth{}
+	err := mongoCollection.FindOne(context.Background(), filter).Decode(&user)
+	return user, err
+}
+
+func FindOAuthUserFromMongoDBUsingEmail(Email string, mongoCollection *mongo.Collection) (types.User_Mongo_OAuth, error) {
+	filter := bson.M{"email": Email}
+	user := types.User_Mongo_OAuth{}
+	err := mongoCollection.FindOne(context.Background(), filter).Decode(&user)
+	return user, err
+}
+
+func FindOAuthUserFromMongoDBUsingUserName(UserName string, mongoCollection *mongo.Collection) (types.User_Mongo_OAuth, error) {
+	filter := bson.M{"username": UserName}
+	user := types.User_Mongo_OAuth{}
+	err := mongoCollection.FindOne(context.Background(), filter).Decode(&user)
+	return user, err
+}

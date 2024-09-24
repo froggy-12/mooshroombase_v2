@@ -18,6 +18,7 @@ func Init(mongoClient *mongo.Client, redisClient *redis.Client, mariaDBClient *s
 		utils.DebugLogger("db", "detected mongodb as primary database indexing and checking some models")
 		database := mongoClient.Database("mooshroombase")
 		usersCollection := database.Collection("users")
+
 		_, err := usersCollection.Indexes().CreateOne(context.Background(), mongo.IndexModel{
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true),
@@ -34,6 +35,28 @@ func Init(mongoClient *mongo.Client, redisClient *redis.Client, mariaDBClient *s
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		if configs.Configs.Authentication.OAuth {
+			oauthUserColl := database.Collection("oauth_users")
+
+			_, err = oauthUserColl.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+				Keys:    bson.M{"email": 1},
+				Options: options.Index().SetUnique(true),
+			})
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = oauthUserColl.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+				Keys:    bson.M{"username": 1},
+				Options: options.Index().SetUnique(true),
+			})
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 	} else if configs.Configs.Authentication.Auth && configs.Configs.DatabaseConfigurations.PrimaryDB == "mariadb" {
 		utils.DebugLogger("db", "detected mariadb as primary database running some configurations")
 

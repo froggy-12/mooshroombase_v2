@@ -175,6 +175,10 @@ func SendVerificationEmail(c *fiber.Ctx, mariadbClient *sql.DB, validate validat
 		}
 	}
 
+	if body.ID == "" {
+		return c.Status(http.StatusBadRequest).JSON(types.ErrorResponse{Error: "No ID Has been found"})
+	}
+
 	user, err := utils.FindUserFromMariaDBUsingID(body.ID, mariadbClient)
 
 	if err != nil {

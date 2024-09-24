@@ -71,6 +71,20 @@ type User_Mongo struct {
 	LastLoggedIn      LastTimeLoggedIn `bson:"lastLoggedIn"`
 	RawData           []RawUserData    `bson:"rawData"`
 }
+type User_Mongo_OAuth struct {
+	ID                string        `bson:"id"`
+	UserName          string        `bson:"username, unique"`
+	FirstName         string        `bson:"firstName"`
+	LastName          string        `bson:"lastName"`
+	Email             string        `bson:"email, unique"`
+	ProfilePicture    string        `bson:"profilePicture"`
+	CreatedAt         time.Time     `bson:"createdAt"`
+	UpdatedAt         time.Time     `bson:"updatedAt"`
+	Verified          bool          `bson:"verified"`
+	VerificationToken string        `bson:"verificationToken"`
+	RawData           []RawUserData `bson:"rawData"`
+	OAuthProvider     string        `bson:"oauthProvider"`
+}
 
 type LastTimeLoggedIn struct {
 	When time.Time `bson:"when"`
@@ -110,6 +124,16 @@ type User_Maria_Oauth struct {
 }
 
 type User_Maria_Oauth_Payload struct {
+	ID             string `json:"id"`
+	UserName       string `json:"username"`
+	FirstName      string `json:"firstName"`
+	LastName       string `json:"lastName"`
+	Email          string `json:"email"`
+	ProfilePicture string `json:"profilePicture"`
+	Verified       bool   `json:"verified"`
+	OAuthProvider  string `json:"oauthProvider"`
+}
+type User_Mongo_Oauth_Payload struct {
 	ID             string `json:"id"`
 	UserName       string `json:"username"`
 	FirstName      string `json:"firstName"`
